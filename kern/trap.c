@@ -83,11 +83,12 @@ trap_init(void)
 	extern void align_trap();
 	extern void mchk_trap();
 	extern void simderr_trap();
+	extern void syscall_trap();
 
 	SETGATE(idt[T_DIVIDE], 	0, GD_KT, divide_trap, 	0);
 	SETGATE(idt[T_DEBUG], 	0, GD_KT, debug_trap, 	0);
 	SETGATE(idt[T_NMI], 	0, GD_KT, nmi_trap, 	0);
-	SETGATE(idt[T_BRKPT], 	0, GD_KT, brkpt_trap, 	0);
+	SETGATE(idt[T_BRKPT], 	0, GD_KT, brkpt_trap, 	3);
 	SETGATE(idt[T_OFLOW], 	0, GD_KT, oflow_trap, 	0);
 	SETGATE(idt[T_BOUND], 	0, GD_KT, bound_trap, 	0);
 	SETGATE(idt[T_ILLOP], 	0, GD_KT, illop_trap, 	0);
@@ -102,6 +103,7 @@ trap_init(void)
 	SETGATE(idt[T_ALIGN], 	0, GD_KT, align_trap, 	0);
 	SETGATE(idt[T_MCHK], 	0, GD_KT, mchk_trap, 	0);
 	SETGATE(idt[T_SIMDERR], 0, GD_KT, simderr_trap, 0);
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, syscall_trap, 3);
 	// Per-CPU setup 
 	trap_init_percpu();
 }
@@ -179,6 +181,27 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	uint32_t eax, edx, ecx, ebx, edi, esi;
+
+	if (tf->tf_trapno == T_PGFLT) {
+		page_fault_handler(tf);
+	}
+
+	if (tf->tf_trapno == T_BRKPT) {
+		monitor(tf);
+	}
+
+	if (tf->tf_trapno == T_SYSCALL) {
+		eax = tf->tf_regs.reg_eax;
+		edx = tf->tf_regs.reg_edx;
+		ecx = tf->tf_regs.reg_ecx;
+		ebx = tf->tf_regs.reg_ebx;
+		edi = tf->tf_regs.reg_edi;
+		esi = tf->tf_regs.reg_esi;
+		eax = syscall(eax, edx, ecx, ebx, edi, esi);
+		tf->tf_regs.reg_eax = eax;
+		return;
+	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
@@ -240,6 +263,9 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 3: Your code here.
+/*	if ((tf->tf_cs & 3) != 3) {
+		panic("page_fault_handler: Invalid virtual address");
+	}*/
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
