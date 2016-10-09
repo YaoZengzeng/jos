@@ -267,7 +267,15 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
+	size_t kstacktop_i;
+	int i;
 
+	for (i = 0; i<NCPU; i++) {
+		kstacktop_i = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
+		boot_map_region(kern_pgdir, (uintptr_t)(kstacktop_i - KSTKSIZE), (size_t)KSTKSIZE, PADDR(percpu_kstacks[i]), PTE_W);
+	}
+
+	return;
 }
 
 // --------------------------------------------------------------
@@ -315,6 +323,10 @@ page_init(void)
 			continue;
 		}
 		if (i * PGSIZE >= EXTPHYSMEM && i * PGSIZE < PTSIZE) {
+			continue;
+		}
+
+		if (i * PGSIZE == MPENTRY_PADDR) {
 			continue;
 		}
 
@@ -611,6 +623,7 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// value will be preserved between calls to mmio_map_region
 	// (just like nextfree in boot_alloc).
 	static uintptr_t base = MMIOBASE;
+	void *ret = (void *)base;
 
 	// Reserve size bytes of virtual memory starting at base and
 	// map physical pages [pa,pa+size) to virtual addresses
@@ -630,7 +643,15 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+	size = ROUNDUP(size, PGSIZE);
+	if (base + size > MMIOLIM) {
+		panic("mmio_map_region: overflow MMIOLIM");
+	}
+
+	boot_map_region(kern_pgdir, base, size, pa, PTE_W | PTE_PCD | PTE_PWT);
+	base += size;
+
+	return ret;
 }
 
 static uintptr_t user_mem_check_addr;
