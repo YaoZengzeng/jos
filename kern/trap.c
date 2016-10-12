@@ -210,6 +210,7 @@ trap_dispatch(struct Trapframe *tf)
 
 	if (tf->tf_trapno == T_PGFLT) {
 		page_fault_handler(tf);
+		return;
 	}
 
 	if (tf->tf_trapno == T_BRKPT) {
@@ -359,7 +360,29 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 4: Your code here.
+	struct UTrapframe u;
+	if (curenv->env_pgfault_upcall == NULL) {
+		goto destroy;
+	}
+	u.utf_fault_va = fault_va;
+	u.utf_err = 0;
+	u.utf_regs = tf->tf_regs;
+	u.utf_eip = tf->tf_eip;
+	u.utf_eflags = tf->tf_eflags;
+	u.utf_esp = tf->tf_esp;
 
+	if (curenv->env_tf.tf_esp >= UXSTACKTOP - PGSIZE && curenv->env_tf.tf_esp < UXSTACKTOP) {
+		curenv->env_tf.tf_esp -= (sizeof(struct UTrapframe) + 4);
+		*((struct UTrapframe*)(curenv->env_tf.tf_esp)) = u;
+	} else {
+		curenv->env_tf.tf_esp = UXSTACKTOP - sizeof(struct UTrapframe);
+		*((struct UTrapframe*)(curenv->env_tf.tf_esp)) = u;
+	}
+	curenv->env_tf.tf_eip = (uintptr_t)(curenv->env_pgfault_upcall);
+	env_run(curenv);
+
+
+destroy:
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
 		curenv->env_id, fault_va, tf->tf_eip);
