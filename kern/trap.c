@@ -91,6 +91,7 @@ trap_init(void)
 	extern void mchk_trap();
 	extern void simderr_trap();
 	extern void syscall_trap();
+	extern void timer_irq();
 
 	SETGATE(idt[T_DIVIDE], 	0, GD_KT, divide_trap, 	0);
 	SETGATE(idt[T_DEBUG], 	0, GD_KT, debug_trap, 	0);
@@ -111,6 +112,7 @@ trap_init(void)
 	SETGATE(idt[T_MCHK], 	0, GD_KT, mchk_trap, 	0);
 	SETGATE(idt[T_SIMDERR], 0, GD_KT, simderr_trap, 0);
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, syscall_trap, 3);
+	SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, GD_KT, timer_irq, 3);
 	// Per-CPU setup 
 	trap_init_percpu();
 }
@@ -241,6 +243,10 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 4: Your code here.
+	if (tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER) {
+		lapic_eoi();
+		sched_yield();
+	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);

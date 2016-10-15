@@ -395,18 +395,21 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	switch (syscallno) {
 	case SYS_cputs:
 		sys_cputs((const char*) a1, (size_t) a2);
+		break;
 
 	case SYS_cgetc:
 		sys_cgetc();
+		break;
 
 	case SYS_getenvid:
 		return sys_getenvid();
 
 	case SYS_env_destroy:
-		sys_env_destroy((envid_t) a1);
+		return sys_env_destroy((envid_t) a1);
 
 	case SYS_yield:
 		sys_yield();
+		break;
 
 	case SYS_exofork:
 		return sys_exofork();
