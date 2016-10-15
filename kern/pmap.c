@@ -682,7 +682,6 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 	pte_t *pte;
 	low = ROUNDDOWN((void *)va, PGSIZE);
 	high = ROUNDUP((void *)va + len, PGSIZE);
-
 	perm |= PTE_P;
 	for (addr = low; addr < high; addr += PGSIZE) {
 		pte = pgdir_walk(env->env_pgdir, addr, 0);

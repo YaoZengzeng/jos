@@ -65,13 +65,17 @@ _pgfault_upcall:
 	// ways as registers become unavailable as scratch space.
 	//
 	// LAB 4: Your code here.
-	addl $8, %esp
-	movl %esp, %eax
-	addl $32, %esp
-	popl %ebx
+	addl $8, %esp   			// move to end of struct PushRegs
+	movl %esp, %eax 			// save current position to eax
+	addl $32, %esp 				// move to start of struct PushRegs
+	popl %ebx 					// save pre-eip to ebx
 	addl $4, %esp
+	popl %ecx
+	subl $4, %ecx
+	pushl %ecx
 	popl %esp
-	pushl %ebx
+	addl $4, %esp
+	pushl %ebx 					// push pre-eip to blank word
 	movl %eax, %esp
 
 
@@ -90,7 +94,6 @@ _pgfault_upcall:
 	// Switch back to the adjusted trap-time stack.
 	// LAB 4: Your code here.
 	popl %esp
-	subl $4, %esp
 
 	// Return to re-execute the instruction that faulted.
 	// LAB 4: Your code here.

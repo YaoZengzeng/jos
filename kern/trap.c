@@ -324,9 +324,9 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 3: Your code here.
-/*	if ((tf->tf_cs & 3) != 3) {
-		panic("page_fault_handler: Invalid virtual address");
-	}*/
+	if (fault_va >= UTOP ) {
+		goto fail;
+	}
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
@@ -360,12 +360,14 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 4: Your code here.
-	struct UTrapframe u;
 	if (curenv->env_pgfault_upcall == NULL) {
-		goto destroy;
+		goto fail;
 	}
+
+	struct UTrapframe u;
+	struct PageInfo *page;
 	u.utf_fault_va = fault_va;
-	u.utf_err = 0;
+	u.utf_err = tf->tf_err;
 	u.utf_regs = tf->tf_regs;
 	u.utf_eip = tf->tf_eip;
 	u.utf_eflags = tf->tf_eflags;
@@ -373,16 +375,17 @@ page_fault_handler(struct Trapframe *tf)
 
 	if (curenv->env_tf.tf_esp >= UXSTACKTOP - PGSIZE && curenv->env_tf.tf_esp < UXSTACKTOP) {
 		curenv->env_tf.tf_esp -= (sizeof(struct UTrapframe) + 4);
+		user_mem_assert(curenv, (const void*)(curenv->env_tf.tf_esp), sizeof(struct UTrapframe) + 4, PTE_W);
 		*((struct UTrapframe*)(curenv->env_tf.tf_esp)) = u;
 	} else {
 		curenv->env_tf.tf_esp = UXSTACKTOP - sizeof(struct UTrapframe);
 		*((struct UTrapframe*)(curenv->env_tf.tf_esp)) = u;
+		user_mem_assert(curenv, (const void*)(curenv->env_tf.tf_esp), sizeof(struct UTrapframe), PTE_W);
 	}
 	curenv->env_tf.tf_eip = (uintptr_t)(curenv->env_pgfault_upcall);
 	env_run(curenv);
 
-
-destroy:
+fail:
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
 		curenv->env_id, fault_va, tf->tf_eip);
