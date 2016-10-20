@@ -23,16 +23,23 @@ int32_t
 ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 {
 	// LAB 4: Your code here.
-	int ret;
+	int ret, perm;
 
 	if (pg == NULL) {
 		ret = sys_ipc_recv((void *)UTOP);
-		*perm_store = 0;
+		perm = 0;
 	} else {
 		ret = sys_ipc_recv(pg);
-		*perm_store = thisenv->env_ipc_perm;
+		perm = thisenv->env_ipc_perm;
 	}
-	*from_env_store = thisenv->env_ipc_from;
+
+	if (from_env_store != NULL) {
+		*from_env_store = thisenv->env_ipc_from;
+	}
+
+	if (perm_store != NULL) {
+		*perm_store = perm;
+	}
 
 	if (ret != 0) {
 		panic("ipc_recv: sys_ipc_recv failed\n");
