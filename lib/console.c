@@ -17,7 +17,6 @@ getchar(void)
 {
 	unsigned char c;
 	int r;
-
 	// JOS does, however, support standard _input_ redirection,
 	// allowing the user to redirect script files to the shell and such.
 	// getchar() reads a character from file descriptor 0.
@@ -79,7 +78,6 @@ static ssize_t
 devcons_read(struct Fd *fd, void *vbuf, size_t n)
 {
 	int c;
-
 	if (n == 0)
 		return 0;
 

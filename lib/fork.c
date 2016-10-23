@@ -93,7 +93,7 @@ duppage(envid_t envid, unsigned pn)
 		return 0;
 	}
 
-	if (sys_page_map(0, (void *)(pn * PGSIZE), envid, (void *)(pn * PGSIZE), PGOFF(uvpt[pn])) < 0) {
+	if (sys_page_map(0, (void *)(pn * PGSIZE), envid, (void *)(pn * PGSIZE), PGOFF(uvpt[pn]) & PTE_SYSCALL) < 0) {
 		panic("duppage: sys_page_map failed\n");
 	}
 
