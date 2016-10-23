@@ -301,6 +301,20 @@ static int
 copy_shared_pages(envid_t child)
 {
 	// LAB 5: Your code here.
+	uint8_t *addr;
+	int ret;
+
+	for (addr = (uint8_t *) 0; addr < (uint8_t *)UTOP; addr += PGSIZE) {
+		if ((uvpd[PDX(addr)] & PTE_P) && (uvpt[PGNUM(addr)] & PTE_P) && (uvpt[PGNUM(addr)] & PTE_SHARE)) {
+			// TODO: the PTE_A bit of uvpt[PGNUM(addr)] will be set, dont known why,
+			// so use PGOFF(uvpt[PGNUM(addr)]) & PTE_SYSCALL to work around
+			if ((ret = sys_page_map(0, (void *)addr, child, (void *)addr, PGOFF(uvpt[PGNUM(addr)]) & PTE_SYSCALL)) < 0) {
+				panic("copy_shared_pages: sys_page_map failed\n");
+			}
+		}
+	}
+
+
 	return 0;
 }
 
