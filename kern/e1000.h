@@ -27,6 +27,27 @@
 #define E1000_TXD_STAT_DD    0x00000001 /* Descriptor Done */
 #define E1000_TXD_CMD_RS     0x08000000 /* Report Status */
 
+
+#define E1000_RAH_AV  0x80000000        /* Receive descriptor valid */
+#define E1000_RA       0x05400  /* Receive Address - RW Array */
+#define E1000_RDBAL    0x02800  /* RX Descriptor Base Address Low - RW */
+#define E1000_RDBAH    0x02804  /* RX Descriptor Base Address High - RW */
+#define E1000_RDLEN    0x02808  /* RX Descriptor Length - RW */
+#define E1000_RDH      0x02810  /* RX Descriptor Head - RW */
+#define E1000_RDT      0x02818  /* RX Descriptor Tail - RW */
+#define E1000_RCTL     0x00100  /* RX Control - RW */
+
+
+/* Receive Control */
+#define E1000_RCTL_EN             0x00000002    /* enable */
+#define E1000_RCTL_BAM            0x00008000    /* broadcast enable */
+#define E1000_RCTL_DTYP_MASK      0x00000C00    /* Descriptor type mask */
+#define E1000_RCTL_SZ_2048        0x00000000    /* rx buffer size 2048 */
+#define E1000_RCTL_SECRC          0x04000000    /* Strip Ethernet CRC */
+
+#define E1000_RXD_STAT_DD       0x01    /* Descriptor Done */
+#define E1000_RXD_STAT_EOP      0x02    /* End of Packet */
+
 struct tx_desc {
 	uint64_t 	addr;
 	uint16_t	length;
@@ -37,7 +58,17 @@ struct tx_desc {
 	uint16_t	special;
 };
 
+struct rx_desc {
+	uint64_t	addr;
+	uint16_t	length;
+	uint16_t	checksum;
+	uint8_t		status;
+	uint8_t		errors;
+	uint16_t	special;
+};
+
 int pci_e1000_attach(struct pci_func *pcif);
 int e1000_put_tx_desc(struct tx_desc *td);
+int e1000_get_rx_desc(struct rx_desc *rd);
 
 #endif	// JOS_KERN_E1000_H

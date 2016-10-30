@@ -127,3 +127,8 @@ int sys_tx_pkt(struct tx_desc *td)
 {
 	return syscall(SYS_tx_pkt, 0, (uint32_t) td, 0, 0, 0, 0);
 }
+
+int sys_rx_pkt(struct rx_desc *rd)
+{
+	return syscall(SYS_rx_pkt, 0, (uint32_t) rd, 0, 0, 0, 0);
+}

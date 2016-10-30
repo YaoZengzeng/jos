@@ -728,6 +728,24 @@ user_mem_phy_addr(uintptr_t va, physaddr_t *pa_store)
 	return;
 }
 
+void
+user_mem_page_replace(uintptr_t va, struct PageInfo *pt)
+{
+	user_mem_assert(curenv, (const void*)va, PGSIZE, PTE_U | PTE_P);
+
+	pte_t *pte;
+	struct PageInfo *page = page_lookup(curenv->env_pgdir, (void *)va, &pte);
+
+	int ref = page->pp_ref;
+	page->pp_ref = pt->pp_ref;
+	pt->pp_ref = ref;
+
+	*pte = page2pa(pt) | PGOFF(*pte);
+	tlb_invalidate(curenv->env_pgdir, (void*)va);
+
+	return;
+}
+
 
 // --------------------------------------------------------------
 // Checking functions.

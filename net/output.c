@@ -15,13 +15,17 @@ output(envid_t ns_envid)
 	struct tx_desc td;
 	int r;
 
-	memset(&td, 0, sizeof(td));
-
 	while(1) {
 		r = sys_ipc_recv(&nsipcbuf);
 		if (r != 0) {
 			continue;
 		}
+
+		if ((thisenv->env_ipc_from != ns_envid) || (thisenv->env_ipc_value != NSREQ_OUTPUT)) {
+			continue;
+		}
+
+		memset(&td, 0, sizeof(td));
 
 		if (thisenv->env_ipc_value == NSREQ_OUTPUT) {
 			td.addr = (uint32_t)nsipcbuf.pkt.jp_data;

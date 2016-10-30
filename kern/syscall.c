@@ -491,8 +491,32 @@ sys_tx_pkt(struct tx_desc *td) {
 		if (e1000_put_tx_desc(td) == 0) {
 			break;
 		}
-		//sys_yield();
 	}
+
+	return 0;
+}
+
+// Get packet from e1000 driver
+// return 0 on success
+// return -1 on error
+static int
+sys_rx_pkt(struct rx_desc *rd) {
+	int r;
+
+	user_mem_assert(curenv, rd, sizeof(struct rx_desc), PTE_U);
+
+	struct rx_desc kr = *rd;
+
+	user_mem_phy_addr((uintptr_t)(kr.addr), (physaddr_t *)&(kr.addr));
+
+	r = e1000_get_rx_desc(&kr);
+	if (r != 0) {
+		return r;
+	}
+
+	user_mem_page_replace(rd->addr, pa2page(kr.addr));
+	kr.addr = rd->addr;
+	*rd = kr;
 
 	return 0;
 }
@@ -555,6 +579,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 
 	case SYS_tx_pkt:
 		return sys_tx_pkt((struct tx_desc *) a1);
+
+	case SYS_rx_pkt:
+		return sys_rx_pkt((struct rx_desc *) a1);
 
 	default:
 		return -E_INVAL;

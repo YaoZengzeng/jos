@@ -5,12 +5,15 @@
 // LAB 6: Your driver code here
 
 #define NTXDESCS	64
+#define NRXDESCS	128
 
 struct tx_desc tx_desc_table[NTXDESCS];
+struct rx_desc rx_desc_table[NRXDESCS];
 
 volatile uint32_t *e1000;
 
 volatile uint32_t *e1000_tdt;
+volatile uint32_t *e1000_rdt;
 
 #define E1000_REG_ADDR(e, off) (((uintptr_t) e) + (off))
 
@@ -67,6 +70,40 @@ int pci_e1000_attach(struct pci_func *pcif) {
 	tpg &= 0x3FFFFFFF;
 	*(uint32_t *)tipg = tpg;
 
+	uintptr_t ral0 = E1000_REG_ADDR(e1000, E1000_RA);
+	uintptr_t rah0 = ral0 + sizeof(uint32_t);
+	*(uint32_t *)ral0 = 0x12005452;
+	*(uint32_t *)rah0 = 0x5634 | E1000_RAH_AV;
+
+	physaddr_t	rx_table = PADDR(&rx_desc_table);
+	uintptr_t rdbal = E1000_REG_ADDR(e1000, E1000_RDBAL);
+	*(uint32_t *) rdbal = rx_table;
+	uintptr_t rdbah = E1000_REG_ADDR(e1000, E1000_RDBAH);
+	*(uint32_t *) rdbah = 0;
+
+	for (i = 0; i<NRXDESCS; i++) {
+		rx_desc_table[i].addr = page2pa(page_alloc(0)) + 4;
+	}
+
+	uintptr_t rdlen = E1000_REG_ADDR(e1000, E1000_RDLEN);
+	*(uint32_t *)rdlen = sizeof(rx_desc_table);
+
+	uintptr_t rdt = E1000_REG_ADDR(e1000, E1000_RDT);
+	*(uint32_t *)rdt = NRXDESCS - 1;
+	uintptr_t rdh = E1000_REG_ADDR(e1000, E1000_RDH);
+	*(uint32_t *)rdh = 0;
+	e1000_rdt = (uint32_t *)rdt;
+
+	uint32_t rflag = 0;
+	uintptr_t rctl = E1000_REG_ADDR(e1000, E1000_RCTL);
+
+	rflag |= E1000_RCTL_EN;
+	rflag &= (~E1000_RCTL_DTYP_MASK);
+	rflag |= E1000_RCTL_BAM;
+	rflag |= E1000_RCTL_SZ_2048;
+	rflag |= E1000_RCTL_SECRC;
+
+	*(uint32_t *) rctl = rflag;
 	return 0;
 }
 
@@ -81,6 +118,26 @@ int e1000_put_tx_desc(struct tx_desc *td) {
 	tt->cmd |= (E1000_TXD_CMD_RS >> 24);
 
 	*e1000_tdt = (*e1000_tdt + 1) & (NTXDESCS - 1);
+
+	return 0;
+}
+
+int e1000_get_rx_desc(struct rx_desc *rd) {
+
+	int i = (*e1000_rdt + 1) & (NRXDESCS - 1);
+	if (!(rx_desc_table[i].status & E1000_RXD_STAT_DD ) || !(rx_desc_table[i].status & E1000_RXD_STAT_EOP)) {
+		return -1;
+	}
+
+	struct rx_desc *rr;
+	rr = &rx_desc_table[i];
+
+	uint64_t pa = rd->addr;
+	*rd = *rr;
+	rr->addr = pa;
+	rr->status = 0;
+
+	*e1000_rdt = i;
 
 	return 0;
 }
