@@ -122,3 +122,8 @@ sys_time_msec(void)
 {
 	return (unsigned int) syscall(SYS_time_msec, 0, 0, 0, 0, 0, 0);
 }
+
+int sys_tx_pkt(struct tx_desc *td)
+{
+	return syscall(SYS_tx_pkt, 0, (uint32_t) td, 0, 0, 0, 0);
+}

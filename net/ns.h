@@ -1,4 +1,5 @@
 #include <inc/ns.h>
+#include <inc/x86.h>
 #include <inc/lib.h>
 
 #define IP "10.0.2.15"

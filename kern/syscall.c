@@ -12,6 +12,7 @@
 #include <kern/console.h>
 #include <kern/sched.h>
 #include <kern/time.h>
+#include <kern/e1000.h>
 
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
@@ -474,7 +475,26 @@ static int
 sys_time_msec(void)
 {
 	// LAB 6: Your code here.
-	panic("sys_time_msec not implemented");
+	return (int)time_msec();
+}
+
+// Send packet to e1000 driver
+// return 0 on success.
+// Return -1 on error.
+static int
+sys_tx_pkt(struct tx_desc *td) {
+	user_mem_assert(curenv, td, sizeof(struct tx_desc), PTE_U);
+
+	user_mem_phy_addr((uintptr_t)(td->addr), (physaddr_t *)&(td->addr));
+
+	while(1) {
+		if (e1000_put_tx_desc(td) == 0) {
+			break;
+		}
+		//sys_yield();
+	}
+
+	return 0;
 }
 
 // Dispatches to the correct kernel function, passing the arguments.
@@ -529,6 +549,12 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 
 	case SYS_env_set_trapframe:
 		return sys_env_set_trapframe((envid_t) a1, (struct Trapframe *) a2);
+
+	case SYS_time_msec:
+		return sys_time_msec();
+
+	case SYS_tx_pkt:
+		return sys_tx_pkt((struct tx_desc *) a1);
 
 	default:
 		return -E_INVAL;

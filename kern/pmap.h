@@ -67,6 +67,7 @@ void *	mmio_map_region(physaddr_t pa, size_t size);
 
 int	user_mem_check(struct Env *env, const void *va, size_t len, int perm);
 void	user_mem_assert(struct Env *env, const void *va, size_t len, int perm);
+void user_mem_phy_addr(uintptr_t va, physaddr_t *pa_store);
 
 static inline physaddr_t
 page2pa(struct PageInfo *pp)

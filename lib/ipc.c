@@ -70,7 +70,7 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 			return;
 		}
 		if (ret != -E_IPC_NOT_RECV) {
-			panic("ipc_send: sys_ipc_try_send failed, ret is %d\n", ret);
+			panic("ipc_send: sys_ipc_try_send failed, ret is %e\n", ret);
 		}
 		sys_yield();
 	}
